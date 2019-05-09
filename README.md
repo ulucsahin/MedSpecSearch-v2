@@ -21,18 +21,18 @@ Uses: <br>
 This notebook shows how to restore a pre-trained model from hard drive.
 
 Uses:<br>
-helper.py<br>
-EmbedHelper.py<br>
-Models.py<br>
+- helper.py<br>
+- EmbedHelper.py<br>
+- Models.py<br>
 
 ### Getting Predictions.ipynb
 This notebook shows how to get predictions from a trained model.
 
 Uses: <br>
-helper.py<br>
-EmbedHelper.py<br>
-DataLoader.py<br>
-Models.py<br>
+- helper.py<br>
+- EmbedHelper.py<br>
+- DataLoader.py<br>
+- Models.py<br>
 
 ### Hospital Data.ipynb
 Shows how to use hospitals.py script to get hospital results for specified medical specialty and region.
