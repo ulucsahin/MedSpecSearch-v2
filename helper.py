@@ -10,6 +10,25 @@ import EmbedHelper
 import DataLoader
 import Models
 
+classDict = {'Dermatology': 0,
+ 'Internal Medicine': 1,
+ 'Neurology': 2,
+ 'Obstetrics & Gynecology': 3,
+ 'Ophthalmology': 4,
+ 'Orthopaedic Surgery': 5,
+ 'Otolaryngology': 6,
+ 'Pediatrics': 7,
+ 'Psychiatry': 8,
+ 'Radiology-Diagnostic': 9,
+ 'Surgery-General': 10,
+ 'Urology': 11}
+
+classList = [key for key,value in classDict.items()]
+
+reverse_class_dict = {}
+for i in range(len(classList)):
+    reverse_class_dict[i] = classList[i]
+
 def getTokenLengths(token):
     """
     A utility method that helps getting number of tokens (words) 
@@ -337,3 +356,20 @@ def get_weights_biases_acts(layer_count, nnModel):
     activations.reverse()
     
     return weights, biases, activations
+
+def get_prediction_single_input(result):
+    """
+    This method returns prediction in human readable form.
+
+    Parameters
+    ----------
+    result : dict
+        Dictionary containing results returned from model after evaluation.
+
+    Returns
+    -------
+    string
+        Prediction in string form.
+    """
+
+    return reverse_class_dict[result["Prediction"][0]]
