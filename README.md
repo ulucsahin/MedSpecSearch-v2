@@ -5,7 +5,7 @@ An authentication token for Google Translation API is required to use Turkish tr
 ### How to get aut.json file for Google API
 - Login to https://console.developers.google.com <br>
 - Click "Credentials" on the left side under "APIs & Services". <br>
-- If there is no previously created project available create a new project. <br>
+- If there is no previously created project available, create a new project. <br>
 - Click "Create Credentials" and select "Service account key". <br>
 - Select Service Account, choose JSON format as key type and click Create. <br>
 - Rename downloaded file as "aut.json" and put it under data folder of this project.
