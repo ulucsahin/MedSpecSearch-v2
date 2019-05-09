@@ -1,18 +1,38 @@
 # MedSpecSearch-v2
 
 # Scripts
-
 Below are list of ipynb tutorial files that show how to use scripts. 
 
-### Example Usage of Loading Embedding, Training Model, LRP, Removing Words and Removing Sentences.ipynb
-This notebook shows how each module should be used. Each method is documented and explained. Be careful that all Models, Embeddings and Data should be included.
+### iCliniq Data Scraping.ipynb 
+Downloads data from https://www.icliniq.com. Downloaded data will be saved to hard drive.
 
-Shows usage of: <br>
+<br>
+<br>
+
+### Training and Saving Model.ipynb
+This notebook shows how to train and save a tensoflow model into hard drive.
+
+Uses: <br>
 - helper.py<br>
 - EmbedHelper.py<br>
-- DataLoader.py<br>
 - Models.py<br>
-- utility.py<br>
+
+### Restoring Model.ipynb
+This notebook shows how to restore a pre-trained model from hard drive.
+
+Uses:<br>
+helper.py<br>
+EmbedHelper.py<br>
+Models.py<br>
+
+### Getting Predictions.ipynb
+This notebook shows how to get predictions from a trained model.
+
+Uses: <br>
+helper.py<br>
+EmbedHelper.py<br>
+DataLoader.py<br>
+Models.py<br>
 
 ### Hospital Data.ipynb
 Shows how to use hospitals.py script to get hospital results for specified medical specialty and region.
@@ -26,14 +46,8 @@ Shows how to use newsgroups or iCliniq data (named fold0 in script) to find freq
 Shows usage of: <br>
 - tfidf_mesh.py
 
-<!--- ### TF-IDF and MESH.ipynb
-Shows how to use tfidf_mesh module to --->
 
-### iCliniq Data Scraping.ipynb
-Downloads data from https://www.icliniq.com. Downloaded data will be saved to hard drive.
 
-<br>
-<br>
 
 An authentication token for Google Translation API is required to use Turkish translation in this project. Steps below explains how to get a token and use it. 
 
