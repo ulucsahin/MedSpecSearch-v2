@@ -104,7 +104,7 @@ dataColumn: Specifies which column should be used as data in csv files. Can be d
 maxLength: Maximum sentence length in words. Data instances with more than maxLength will be cut to 128 words. <br>
 batchSize: Batch size during training. <br>
 embeddingType: Specifies which embedding should be used. <br>
-PreEmbed: Specifies if loaded embeddings should be used or not. Should be "true" in most cases. <br>
+PreEmbed: Specifies if loaded embeddings should be used or not. Should be "True" in most cases. <br>
 restore: Specifies if model should be restored <br>
 <br>
 Some of these specifications are not currently used but kept for backwards compatability.
