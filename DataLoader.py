@@ -10,7 +10,13 @@ from os.path import join, dirname
 import numpy as np
 from google.cloud import translate
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = join(dirname(__file__), 'data', 'aut.json')
+canTranslate = False
+jsonFilePath = join(os.curdir, 'data', 'aut.json')
+if os.path.isfile(jsonFilePath):
+    canTranslate = True
+
+if canTranslate:
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = join(os.curdir, 'data', 'aut.json')
 
 
 # In[2]:
@@ -42,9 +48,12 @@ def checkInputData(inputData):
     return True
 
 
-turkishLabels = ['Deri ve Zührevi Hastalıkları (Cildiye)', 'İç Hastalıkları (Dahiliye)', 'Nöroloji', 'Kadın Hastalıkları ve Doğum', 'Göz Hastalıkları', 'Ortopedi ve Travmatoloji',
-                 'Kulak Burun Boğaz Hastalıkları', 'Çocuk Sağlığı ve Hastalıkları', 'Ruh Sağlığı ve Hastalıkları', 'Radyoloji', 'Genel Cerrahi', 'Üroloji']
-englishLabels = ['Dermatology', 'Internal Medicine', 'Neurology', 'Obstetrics & Gynecology', 'Ophthalmology', 'Orthopaedic Surgery', 'Otolaryngology', 'Pediatrics', 'Psychiatry',
+turkishLabels = ['Deri ve Zührevi Hastalıkları (Cildiye)', 'İç Hastalıkları (Dahiliye)', 'Nöroloji',
+                 'Kadın Hastalıkları ve Doğum', 'Göz Hastalıkları', 'Ortopedi ve Travmatoloji',
+                 'Kulak Burun Boğaz Hastalıkları', 'Çocuk Sağlığı ve Hastalıkları', 'Ruh Sağlığı ve Hastalıkları',
+                 'Radyoloji', 'Genel Cerrahi', 'Üroloji']
+englishLabels = ['Dermatology', 'Internal Medicine', 'Neurology', 'Obstetrics & Gynecology', 'Ophthalmology',
+                 'Orthopaedic Surgery', 'Otolaryngology', 'Pediatrics', 'Psychiatry',
                  'Radiology-Diagnostic', 'Surgery-General', 'Urology']
 
 labelMatches = zip(turkishLabels, englishLabels)
@@ -56,7 +65,9 @@ print(labelTranslateDict)
 
 # This class handles data operations.
 class DataHandler:
-    translator = translate.Client()
+    if canTranslate:
+        translator = translate.Client()
+
     turkishLabelsDict = labelTranslateDict
 
     def __init__(self):
@@ -85,7 +96,7 @@ class DataHandler:
 
     @staticmethod
     def translateInput(inputTR):
-        """ 
+        """
         Translates Turkish input to English.
 
         Parameters
@@ -98,7 +109,57 @@ class DataHandler:
         string
             Text translated to English.
         """
+        if not canTranslate:
+            raise Exception("Google aut.json file missing")
         return DataHandler.translator.translate(inputTR, target_language="en")["translatedText"]
+
+    def is_number(s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
+    @staticmethod
+    def cleanText(text):
+        """
+        Parameters
+        ----------
+        textList : list
+            Batch of text's
+
+        Returns
+        -------
+        list
+            List of cleaned (removed unwanted symbols or chars) words
+        """
+
+        try:
+            text = text.lower()
+        except:
+            print(text)
+            # raise exception("oops")
+        text = text.replace("Ãƒâ€šÃ‚Â", "")
+        text = re.sub(' +', ' ', text)
+
+        cleanText = ""
+
+        for word in text.split(" "):
+            cleanWord = ""
+            if not DataHandler.is_number(word):
+                for char in word:
+                    if (ord(char) > 96 and ord(char) < 123):
+                        cleanWord += char + ""
+                    else:
+                        cleanWord += ""
+            else:
+                cleanWord = word
+
+            cleanText += cleanWord + " "
+            cleanText = re.sub(' +', ' ', cleanText)
+
+        return cleanText.strip()
+
 
     @staticmethod
     def cleanTextData(textList):
@@ -107,13 +168,13 @@ class DataHandler:
         Parameters
         ----------
         textList : list
-            List of words
+            Batch of text's
 
         Returns
         -------
-        list 
-            List of cleaned (removed unwanted symbols or chars) words 
-        """ 
+        list
+            List of cleaned (removed unwanted symbols or chars) words
+        """
 
         cleanTextList = []
         for text in textList:
@@ -133,7 +194,7 @@ class DataHandler:
                     if (ord(char) > 96 and ord(char) < 123):
                         cleanWord += char + ""
                     else:
-                        cleanWord += " "
+                        cleanWord += ""
 
                 cleanText += cleanWord + " "
                 cleanText = re.sub(' +', ' ', cleanText)
@@ -204,7 +265,7 @@ class DataHandler:
 
            Returns
            -------
-        ndarray 
+        ndarray
             Numpy array of vectors
         """
         fillCount = fillSize - len(sentence)
@@ -259,9 +320,9 @@ class DataHandler:
 
         Returns
         -------
-        List 
+        List
             List of strings
-        int 
+        int
             Length of sentence used
         """
         embedList = []
@@ -294,14 +355,14 @@ class DataHandler:
         Parameters
         ----------
         data : ndarray
-            Numpy array of (ndarray of strings(sentences), string) tuple 
+            Numpy array of (ndarray of strings(sentences), string) tuple
         maxLength : int
             Max length of sentences to be padded
         shuffle : bool
             Specifies if data should be shuffled or not
         classDict : dict
-            Dictionary of labels        
-    
+            Dictionary of labels
+
         Returns
         -------
         ndarray
@@ -334,7 +395,7 @@ class DataHandler:
         Parameters
         ----------
         data : ndarray
-            Numpy array of (ndarray of strings(sentences), string) tuple 
+            Numpy array of (ndarray of strings(sentences), string) tuple
         maxLength : int
             Length of sentences
 

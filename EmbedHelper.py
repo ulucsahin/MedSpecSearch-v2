@@ -1,5 +1,6 @@
 import numpy as np
 import gensim
+from gensim.models import FastText
 
 class EmbeddingHandler:
     embedDict = {
@@ -23,13 +24,10 @@ class EmbeddingHandler:
     @staticmethod
     def loadFastTextModel():
         """
-        This method is not yet implemented.
+        Loads FastText pre-trained embeddings
         """
-
-        raise Exception("Fast Text Not Supported Yet")
-
-        # model = FastText.load("data/htFastText.embed")
-        # model = model.wv
+        model = FastText.load("Embeddings/HealthTapFastText")
+        model = model.wv
         return model
 
     def getEmbeddingModel(self,embeddingType,trainNewModel,vectorSize):

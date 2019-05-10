@@ -34,7 +34,7 @@ def mse_loss(p, alpha, global_step, annealing_step,outputSize):
     A = tf.reduce_sum((p-m)**2, axis=1, keep_dims=True) 
     B = tf.reduce_sum(alpha*(S-alpha)/(S*S*(S+1)), axis=1, keep_dims=True) 
     
-    annealing_coef = tf.minimum(1.0,tf.cast(global_step/annealing_step,tf.float32))
+    annealing_coef = tf.minimum(1.0, tf.cast(global_step/annealing_step,tf.float32))
     
     alp = E*(1-p) + 1 
     C =  annealing_coef * KL(alp,outputSize)
@@ -72,7 +72,7 @@ class CNN:
     """
     hiddenSize = 250
     
-    def __init__(self,inputSize,vectorSize,outputSize):
+    def __init__(self, inputSize, vectorSize, outputSize):
         hiddenSize = self.hiddenSize
         
         self.paperGraph = tf.Graph()
@@ -119,7 +119,7 @@ class CNN:
             
             # self.conv2 = tf.layers.conv2d(self.cnnInput,hiddenSize,(4,fullVectorSize),(1,1),padding="valid",activation=None,use_bias=True,name="PreBlock2")
             # self.blockPool2 = tf.nn.max_pool(self.conv2,ksize=[1,125,1,1],strides=[1,1,1,1],padding="VALID",name=("Pool1-"))
-            
+            #
             # self.conv3 = tf.layers.conv2d(self.cnnInput,hiddenSize,(5,fullVectorSize),(1,1),padding="valid",activation=None,use_bias=True,name="PreBlock3")
             # self.blockPool3 = tf.nn.max_pool(self.conv3,ksize=[1,124,1,1],strides=[1,1,1,1],padding="VALID",name=("Pool2-"))
             
@@ -129,7 +129,7 @@ class CNN:
             
 
             num_filters_total = 1*hiddenSize
-            # num_filters_total = 3*hiddenSize
+            #num_filters_total = 3*hiddenSize
 
             self.h_pool = tf.concat(convouts,1)
             self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
@@ -201,13 +201,151 @@ class CNN:
                 self.train_op = self.optimizer.apply_gradients(self.grads_and_vars, global_step=self.global_step)
 
 
+class CNN_3Layer:
+    """
+    Neural network model that we use.
+    Based on Kim Yoon's model.
+    Slightly modified and added confidence methods.
+    """
+    hiddenSize = 250
+
+    def __init__(self, inputSize, vectorSize, outputSize):
+        hiddenSize = self.hiddenSize
+
+        self.paperGraph = tf.Graph()
+        with self.paperGraph.as_default():
+            self.initializer = tf.contrib.layers.variance_scaling_initializer()
+
+            self.nn_inputs = tf.placeholder(tf.string, [None, inputSize])
+            self.nn_vector_inputs = tf.placeholder(tf.float32, [None, inputSize, vectorSize])
+
+            self.token_lengths = tf.placeholder(tf.int32, [None])
+
+            self.nn_outputs = tf.placeholder(tf.int32, [None])
+
+            self.annealing_step = tf.placeholder(dtype=tf.int32)
+
+            self.uncertaintyRatio = tf.placeholder(dtype=tf.float32)
+
+            self.outputsOht = tf.one_hot(self.nn_outputs, outputSize)
+
+            self.isTraining = tf.placeholder(tf.bool, name="PH_isTraining")
+
+            self.fullInputs = self.nn_vector_inputs
+            fullVectorSize = self.fullInputs.shape[2]
+
+            print("fullvectorsize: ", fullVectorSize)
+
+            num_filters = hiddenSize
+            self.cnnInput = tf.expand_dims(self.fullInputs, -1, name="absolute_input")
+
+            convouts = []
+
+            # filter_shape = [3, 300, 1, num_filters] #3-4-5, 300, 1, 128
+            # W2 = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name="W2")
+            # b2 = tf.Variable(tf.constant(0.1, shape=[num_filters]), name="b2")
+            # self.conv1 = tf.nn.conv2d(self.cnnInput,W2,strides=[1, 1, 1, 1],padding="VALID", name="conv")
+
+            self.conv1 = tf.layers.conv2d(self.cnnInput, hiddenSize, (3, fullVectorSize), (1, 1), padding="VALID",
+                                          activation=None, use_bias=True, name="PreBlock")
+            self.blockPool = tf.nn.max_pool(self.conv1, ksize=[1, inputSize - 3 + 1, 1, 1], strides=[1, 1, 1, 1],
+                                            padding="VALID", name=("Pool-"))
+
+            print(self.conv1.shape)
+
+            self.conv2 = tf.layers.conv2d(self.cnnInput,hiddenSize,(4,fullVectorSize),(1,1),padding="valid",activation=None,use_bias=True,name="PreBlock2")
+            self.blockPool2 = tf.nn.max_pool(self.conv2,ksize=[1,125,1,1],strides=[1,1,1,1],padding="VALID",name=("Pool1-"))
+
+            self.conv3 = tf.layers.conv2d(self.cnnInput,hiddenSize,(5,fullVectorSize),(1,1),padding="valid",activation=None,use_bias=True,name="PreBlock3")
+            self.blockPool3 = tf.nn.max_pool(self.conv3,ksize=[1,124,1,1],strides=[1,1,1,1],padding="VALID",name=("Pool2-"))
+
+            convouts.append(self.blockPool)
+            convouts.append(self.blockPool2)
+            convouts.append(self.blockPool3)
+
+            # num_filters_total = 1 * hiddenSize
+            num_filters_total = 3*hiddenSize
+
+            self.h_pool = tf.concat(convouts, 1)
+            self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
+            self.h_drop = tf.layers.dropout(self.h_pool_flat, 0.5, training=self.isTraining)
+
+            with tf.name_scope("fully-connected"):
+                fc1_neurons = 150
+                fc2_neurons = 100
+                fc3_neurons = 25
+
+                self.fc1 = tf.layers.dense(self.h_drop, activation=tf.nn.leaky_relu, name="fc1", use_bias=True,
+                                           kernel_initializer=self.initializer, units=fc1_neurons)
+                self.fcD1 = tf.layers.dropout(self.fc1, 0.5, training=self.isTraining)
+
+            with tf.name_scope("output"):
+                self.scores = tf.layers.dense(self.fcD1, activation=None, name="logits", use_bias=True,
+                                              kernel_initializer=self.initializer, units=outputSize)
+                self.evidence = tf.exp(self.scores / 1000)
+
+            with tf.name_scope("evaluation"):
+                self.global_step = tf.Variable(0, trainable=False)
+                init_learn_rate = 0.001
+                decay_learn_rate = tf.train.exponential_decay(init_learn_rate, self.global_step, 100, 0.90,
+                                                              staircase=True)
+
+                update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+                self.optimizer = tf.train.AdamOptimizer()
+
+            self.predictions = tf.argmax(self.scores, 1, name="absolute_output")
+            self.truths = tf.argmax(self.outputsOht, 1)
+            self.correct_predictions = tf.equal(self.predictions, self.truths)
+            self.accuracy = tf.reduce_mean(tf.cast(self.correct_predictions, "float"), name="accuracy")
+            self.match = tf.reshape(tf.cast(tf.equal(self.predictions, self.truths), tf.float32), (-1, 1))
+
+            with tf.name_scope("uncertainty"):
+                self.alpha = self.evidence + 1
+
+                self.uncertainty = outputSize / tf.reduce_sum(self.alpha, axis=1, keep_dims=True)  # uncertainty
+
+                self.prob = self.alpha / tf.reduce_sum(self.alpha, 1, keepdims=True)
+
+                total_evidence = tf.reduce_sum(self.evidence, 1, keepdims=True)
+                mean_ev = tf.reduce_mean(total_evidence)
+                self.mean_ev_succ = tf.reduce_sum(
+                    tf.reduce_sum(self.evidence, 1, keepdims=True) * self.match) / tf.reduce_sum(self.match + 1e-20)
+                self.mean_ev_fail = tf.reduce_sum(tf.reduce_sum(self.evidence, 1, keepdims=True) * (1 - self.match)) / (
+                            tf.reduce_sum(tf.abs(1 - self.match)) + 1e-20)
+
+                flatUncertainty = tf.reshape(self.uncertainty, shape=[-1, 1])
+                flatCP = tf.reshape(self.correct_predictions, shape=[-1, 1])
+
+                zeros = tf.cast(tf.zeros_like(flatUncertainty), dtype=tf.bool)
+                ones = tf.cast(tf.ones_like(flatUncertainty), dtype=tf.bool)
+                ucAccuraciesBool = tf.where(tf.less_equal(flatUncertainty, self.uncertaintyRatio), ones, zeros)
+
+                self.ucAccuracies = tf.boolean_mask(flatCP, ucAccuraciesBool)
+
+                self.ucAccuracy = tf.reduce_mean(tf.cast(self.ucAccuracies, "float"))
+
+                self.dataRatio = tf.shape(self.ucAccuracies)[0] / tf.shape(flatCP)[0]
+
+            with tf.name_scope("loss"):
+                # loss_EDL is important for confidence scores.
+                self.loss = tf.reduce_mean(
+                    loss_EDL(self.outputsOht, self.alpha, self.global_step, self.annealing_step, outputSize))
+                regLoss = tf.add_n([tf.nn.l2_loss(tf_var) for tf_var in tf.trainable_variables()])
+                regularazationCoef = 0.0000005
+                self.loss += regLoss * regularazationCoef
+
+            with tf.control_dependencies(update_ops):
+                self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
+                self.train_op = self.optimizer.apply_gradients(self.grads_and_vars, global_step=self.global_step)
+
+
 def __init__(self,classDict,embedHandler,dataHandler,inputLength,nnModel):
         self.classDict = classDict
         self.dataHandler = dataHandler
         self.embedHandler = embedHandler
         self.inputLength = inputLength
         self.nnModel = nnModel
-        
+
         self.sess = tf.Session(graph=nnModel.paperGraph)
         with nnModel.paperGraph.as_default():
             with self.sess.as_default():

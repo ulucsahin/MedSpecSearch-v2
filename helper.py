@@ -216,18 +216,18 @@ def trainModel(sess, embedModel, nnModel, iterations, trainData, trainTarget, te
 
         tokens_length = getTokenLengths(data)
         fd = {nnModel.nn_inputs:dataClean, nnModel.nn_vector_inputs:data,nnModel.nn_outputs:target,
-              nnModel.isTraining:True,nnModel.token_lengths:tokens_length,nnModel.annealing_step:0.00005*i}
-        _, acc, los = sess.run([nnModel.train_op,nnModel.accuracy,nnModel.loss],feed_dict=fd)
+              nnModel.isTraining:True,nnModel.token_lengths:tokens_length,nnModel.annealing_step: 100}
+        _, acc, los = sess.run([nnModel.train_op, nnModel.accuracy, nnModel.loss], feed_dict=fd)
 
-        if(i%20==0):
-            title = ("[Current iteration = "+str(i)+" Train Acc:"+str(acc)+" HT Test Acc:"+str(htTestAcc)+" fold0Test: ("+str(fold0TestAcc)+') ucAcc :'+str(ucAcc)
-                +" dataRatio  :"+str(dataRate)+' ]')
+        if i % 5 == 0:
+            title = ("[Current iteration = "+str(i)+" Train Acc:"+str(acc) + " fold0Test: "+str(fold0TestAcc)+"]")
+            title += " "*50
             title = str(title)       
             print(title, end="\r")
 
-        if(i%50000==0 and i != 0):
-            oldTestAcc = fold0TestAcc               
-            testOutputs = evaluatePerformance(nnModel, sess, testData, testTarget, configs["batchSize"], 0.1)  
+        if i % 500 == 0 and i != 0:
+            oldTestAcc = fold0TestAcc
+            testOutputs = evaluatePerformance(configs, nnModel, embedModel, sess, testData, testTarget, configs["batchSize"], 0.1)
             
             fold0TestAcc = testOutputs["Accuracy"]
             fEvTrue = testOutputs["TotalEvidenceTrue"]
@@ -237,13 +237,13 @@ def trainModel(sess, embedModel, nnModel, iterations, trainData, trainTarget, te
             fTruth = testOutputs["Truth"]
             fPrediction = testOutputs["Prediction"]
             
-            confidences = [0.995,0.98,0.90,0.70,0.5]
-            confidenceMatrix = np.zeros(shape=[len(confidences),3])
-            for idx in range(len(confidences)):
-                testOutputs = evaluatePerformance(nnModel, sess, testData, testTarget, configs["batchSize"],1-confidences[idx])
-                confidenceMatrix[idx,0] = confidences[idx]
-                confidenceMatrix[idx,1] = testOutputs["DataRate"]
-                confidenceMatrix[idx,2] = testOutputs["UncertaintyAccuracy"]
+            # confidences = [0.995,0.98,0.90,0.70,0.5]
+            # confidenceMatrix = np.zeros(shape=[len(confidences),3])
+            # for idx in range(len(confidences)):
+            #     testOutputs = evaluatePerformance(nnModel, sess, testData, testTarget, configs["batchSize"],1-confidences[idx])
+            #     confidenceMatrix[idx,0] = confidences[idx]
+            #     confidenceMatrix[idx,1] = testOutputs["DataRate"]
+            #     confidenceMatrix[idx,2] = testOutputs["UncertaintyAccuracy"]
             
             L_test_ev_s.append(fEvTrue)
             L_test_ev_f.append(fEvFail)
@@ -255,7 +255,9 @@ def trainModel(sess, embedModel, nnModel, iterations, trainData, trainTarget, te
             accList.append([i, acc, htTestAcc, fold0TestAcc, los, ucAcc])
             npAccList = np.array(accList)           
 
-def execute_training(should_load, embedModel, iterations, trainData, trainTarget, testData, testTarget, configs, model_path=None):
+
+def execute_training(should_load, embedModel, iterations, trainData, trainTarget, testData, testTarget, configs,
+                     model_path=None):
     """
     Executes whole training operations from scratch. Can be considered as helper method.
     
@@ -293,7 +295,13 @@ def execute_training(should_load, embedModel, iterations, trainData, trainTarget
         ClassDict = pickle.load(f)
     outputSize = len(ClassDict)
 
-    nnModel = Models.CNN(inputSize=inputSize, vectorSize=vectorSize, outputSize=outputSize)
+    if configs["model_type"] == "CNN":
+        nnModel = Models.CNN(inputSize=inputSize, vectorSize=vectorSize, outputSize=outputSize)
+    elif configs["model_type"] == "CNN_3Layer":
+        nnModel = Models.CNN_3Layer(inputSize=inputSize, vectorSize=vectorSize, outputSize=outputSize)
+    elif configs["model_type"] == "RNN_LSTM":
+        nnModel = Models.RNN_LSTM(inputSize=inputSize, vectorSize=vectorSize, outputSize=outputSize)
+
     print("Model Created.")
     sess = tf.InteractiveSession(graph=nnModel.paperGraph)
     tf.global_variables_initializer().run()
