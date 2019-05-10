@@ -107,5 +107,7 @@ embeddingType: Specifies which embedding should be used. <br>
 PreEmbed: Specifies if loaded embeddings should be used or not. Should be "true" in most cases. <br>
 restore: Specifies if model should be restored <br>
 <br>
+Some of these specifications are not currently used but kept for backwards compatability.
+
 
 
