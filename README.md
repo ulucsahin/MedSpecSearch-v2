@@ -53,7 +53,13 @@ Shows how to use newsgroups or iCliniq data (named fold0 in script) to find freq
 Shows usage of: <br>
 - tfidf_mesh.py
 
+### Preprocessing Input and Text Translation.ipynb
+This notebook shows usage of Text Preprocessing and Text translation (From any language to English, input language is automatically deduced, Google doesnt ask extra money for automatic language detection)
 
+Uses: <br>
+- DataLoader
+Shows usage of: <br>
+- DataHandler
 
 
 An authentication token for Google Translation API is required to use Turkish translation in this project. Steps below explains how to get a token and use it. 
