@@ -57,7 +57,7 @@ Shows usage of: <br>
 This notebook shows usage of Text Preprocessing and Text translation (From any language to English, input language is automatically deduced, Google doesnt ask extra money for automatic language detection)
 
 Uses: <br>
-- DataLoader
+- DataLoader.py
 
 Shows usage of: <br>
 - DataHandler
