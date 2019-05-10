@@ -1,5 +1,15 @@
 # MedSpecSearch-v2
 
+Download required data-embeddings-models from 
+https://drive.google.com/drive/folders/1RHj-AnlXyEIKRGa7WmNg1eE_8ezsGnvl?usp=sharing.
+
+Some Embeddings (specified in txt file in zip that you will download from the link) needed to be downloaded seperately, such as GoogleNews Word2Vec Embeddings.
+
+Tutorial Jupyter Notebooks are explained below.
+
+All methods are documented.
+
+
 # Scripts
 Below are list of ipynb tutorial files that show how to use scripts. 
 
@@ -74,15 +84,28 @@ An authentication token for Google Translation API is required to use Turkish tr
 - Rename downloaded file as "aut.json" and put it under data folder of this project.
 
 
-
-Download required data-embeddings-models from 
-https://drive.google.com/drive/folders/1RHj-AnlXyEIKRGa7WmNg1eE_8ezsGnvl?usp=sharing.
-
-Some Embeddings (specified in txt file in zip that you will download from the link) needed to be downloaded seperately, such as GoogleNews Word2Vec Embeddings.
-
-Tutorial Jupyter Notebooks are explained below.
-
-All methods are documented.
-
+## Config File properties <br>
+```
+configs = {
+    "vectorSize":300,
+    "trainNewModel":True,
+    "dataColumn":"question",
+    "maxLength":128,
+    "batchSize":64,
+    "embeddingType":embedDict[2],
+    "PreEmbed":True,
+    "restore":True,
+    "model_type":"CNN_3Layer" # Options are : "CNN" (1 layer) , "CNN_3Layer", "RNN_LSTM"
+}
+```
+vectorSize: Dimension size of embedding vectors. We have used for our embeddings. <br>
+trainNewModel: Specifies if a new model should be trained or not. <br>
+dataColumn: Specifies which column should be used as data in csv files. Can be different for each csv file. <br>
+maxLength: Maximum sentence length in words. Data instances with more than maxLength will be cut to 128 words. <br>
+batchSize: Batch size during training. <br>
+embeddingType: Specifies which embedding should be used. <br>
+PreEmbed: Specifies if loaded embeddings should be used or not. Should be "true" in most cases. <br>
+restore: Specifies if model should be restored <br>
+<br>
 
 
