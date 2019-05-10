@@ -14,7 +14,7 @@ This notebook shows how to train and save Word2Vec and FastText embeddings.
 
 Uses: <br>
 - Gensim <br>
-- EmbedHelper.py<br>
+- Pandas <br>
 
 ### Training and Saving Model.ipynb
 This notebook shows how to train and save a tensoflow model into hard drive.
