@@ -339,18 +339,126 @@ class CNN_3Layer:
                 self.train_op = self.optimizer.apply_gradients(self.grads_and_vars, global_step=self.global_step)
 
 
-def __init__(self,classDict,embedHandler,dataHandler,inputLength,nnModel):
-        self.classDict = classDict
-        self.dataHandler = dataHandler
-        self.embedHandler = embedHandler
-        self.inputLength = inputLength
-        self.nnModel = nnModel
+class RNN_LSTM:
+    """
+    Neural network model that we use.
+    Based on Kim Yoon's model.
+    Slightly modified and added confidence methods.
+    """
+    hiddenSize = 250
 
-        self.sess = tf.Session(graph=nnModel.paperGraph)
-        with nnModel.paperGraph.as_default():
-            with self.sess.as_default():
-                saver = tf.train.Saver()
-                saver.restore(self.sess, "/tmp/model.ckpt")
+    def __init__(self, inputSize, vectorSize, outputSize):
+        hiddenSize = self.hiddenSize
+
+        self.paperGraph = tf.Graph()
+        with self.paperGraph.as_default():
+            self.initializer = tf.contrib.layers.variance_scaling_initializer()
+
+            self.nn_inputs = tf.placeholder(tf.string, [None, inputSize])
+            self.nn_vector_inputs = tf.placeholder(tf.float32, [None, inputSize, vectorSize])
+
+            self.token_lengths = tf.placeholder(tf.int32, [None])
+
+            self.nn_outputs = tf.placeholder(tf.int32, [None])
+
+            self.annealing_step = tf.placeholder(dtype=tf.int32)
+
+            self.uncertaintyRatio = tf.placeholder(dtype=tf.float32)
+
+            self.outputsOht = tf.one_hot(self.nn_outputs, outputSize)
+
+            self.isTraining = tf.placeholder(tf.bool, name="PH_isTraining")
+
+            self.fullInputs = self.nn_vector_inputs
+            fullVectorSize = self.fullInputs.shape[2]
+
+            print("fullvectorsize: ", fullVectorSize)
+
+            num_filters = hiddenSize
+            self.cnnInput = tf.expand_dims(self.fullInputs, -1, name="absolute_input")
+
+            batch_size = tf.shape(self.nn_vector_inputs)[0]
+            time_steps = tf.shape(self.nn_vector_inputs)[1]
+
+            lstm = tf.nn.rnn_cell.LSTMCell(num_filters, state_is_tuple=True)
+            initial_state = lstm.zero_state(batch_size, dtype=tf.float32)
+            print(tf.shape(initial_state))
+            outputs, last_outs = tf.nn.dynamic_rnn(
+                lstm,
+                self.nn_vector_inputs,
+                initial_state=initial_state)
+
+            num_filters_total = 1 * hiddenSize
+            # num_filters_total = 3*hiddenSize
+
+            self.h_pool = tf.concat(outputs, 1)
+            self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total*inputSize])
+
+            with tf.name_scope("fully-connected"):
+                fc1_neurons = 150
+
+                self.fc1 = tf.layers.dense(self.h_pool_flat, activation=tf.nn.leaky_relu, name="fc1", use_bias=True,
+                                           kernel_initializer=self.initializer, units=fc1_neurons)
+                self.fcD1 = tf.layers.dropout(self.fc1, 0.5, training=self.isTraining)
+
+            with tf.name_scope("output"):
+                self.scores = tf.layers.dense(self.fcD1, activation=None, name="logits", use_bias=True,
+                                              kernel_initializer=self.initializer, units=outputSize)
+                self.evidence = tf.exp(self.scores / 1000)
+
+            with tf.name_scope("evaluation"):
+                self.global_step = tf.Variable(0, trainable=False)
+                init_learn_rate = 0.001
+                decay_learn_rate = tf.train.exponential_decay(init_learn_rate, self.global_step, 100, 0.90,
+                                                              staircase=True)
+
+                update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+                self.optimizer = tf.train.AdamOptimizer()
+
+            self.predictions = tf.argmax(self.scores, 1, name="absolute_output")
+            self.truths = tf.argmax(self.outputsOht, 1)
+            self.correct_predictions = tf.equal(self.predictions, self.truths)
+            self.accuracy = tf.reduce_mean(tf.cast(self.correct_predictions, "float"), name="accuracy")
+            self.match = tf.reshape(tf.cast(tf.equal(self.predictions, self.truths), tf.float32), (-1, 1))
+
+            with tf.name_scope("uncertainty"):
+                self.alpha = self.evidence + 1
+
+                self.uncertainty = outputSize / tf.reduce_sum(self.alpha, axis=1, keep_dims=True)  # uncertainty
+
+                self.prob = self.alpha / tf.reduce_sum(self.alpha, 1, keepdims=True)
+
+                total_evidence = tf.reduce_sum(self.evidence, 1, keepdims=True)
+                mean_ev = tf.reduce_mean(total_evidence)
+                self.mean_ev_succ = tf.reduce_sum(
+                    tf.reduce_sum(self.evidence, 1, keepdims=True) * self.match) / tf.reduce_sum(self.match + 1e-20)
+                self.mean_ev_fail = tf.reduce_sum(tf.reduce_sum(self.evidence, 1, keepdims=True) * (1 - self.match)) / (
+                            tf.reduce_sum(tf.abs(1 - self.match)) + 1e-20)
+
+                flatUncertainty = tf.reshape(self.uncertainty, shape=[-1, 1])
+                flatCP = tf.reshape(self.correct_predictions, shape=[-1, 1])
+
+                zeros = tf.cast(tf.zeros_like(flatUncertainty), dtype=tf.bool)
+                ones = tf.cast(tf.ones_like(flatUncertainty), dtype=tf.bool)
+                ucAccuraciesBool = tf.where(tf.less_equal(flatUncertainty, self.uncertaintyRatio), ones, zeros)
+
+                self.ucAccuracies = tf.boolean_mask(flatCP, ucAccuraciesBool)
+
+                self.ucAccuracy = tf.reduce_mean(tf.cast(self.ucAccuracies, "float"))
+
+                self.dataRatio = tf.shape(self.ucAccuracies)[0] / tf.shape(flatCP)[0]
+
+            with tf.name_scope("loss"):
+                # loss_EDL is important for confidence scores.
+                self.loss = tf.reduce_mean(
+                    loss_EDL(self.outputsOht, self.alpha, self.global_step, self.annealing_step, outputSize))
+                regLoss = tf.add_n([tf.nn.l2_loss(tf_var) for tf_var in tf.trainable_variables()])
+                regularazationCoef = 0.0000005
+                self.loss += regLoss * regularazationCoef
+
+            with tf.control_dependencies(update_ops):
+                self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
+                self.train_op = self.optimizer.apply_gradients(self.grads_and_vars, global_step=self.global_step)
 
 
 class Predicter:
