@@ -9,6 +9,13 @@ Downloads data from https://www.icliniq.com. Downloaded data will be saved to ha
 <br>
 <br>
 
+### Embedding Training.ipynb
+This notebook shows how to train and save Word2Vec and FastText embeddings.
+
+Uses: <br>
+- Gensim <br>
+- EmbedHelper.py<br>
+
 ### Training and Saving Model.ipynb
 This notebook shows how to train and save a tensoflow model into hard drive.
 
