@@ -14,8 +14,10 @@ All methods are documented.
 Below are list of ipynb tutorial files that show how to use scripts. 
 
 ### iCliniq Data Scraping.ipynb 
-Downloads data from https://www.icliniq.com. Downloaded data will be saved to hard drive.
+This notebook shows how to use icliniq_data_scraper module to collect data from icliniq website. Downloaded data will be saved to hard drive.
 
+Shows ssage of: <br>
+- icliniq_data_scraper.py
 <br>
 <br>
 
