@@ -39,8 +39,6 @@ classDict = {'Dermatology': 0,
  'Surgery-General': 10,
  'Urology': 11}
 
-fold0ClassDict = classDict
-
 classList = [key for key,value in classDict.items()]
 
 reverse_class_dict = {}
