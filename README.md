@@ -28,6 +28,12 @@ Uses: <br>
 - Gensim <br>
 - Pandas <br>
 
+### Data process example with iCliniq.ipynb
+This notebook shows how to process data from csv files so that we can feed it into neural network while traininig.
+
+Uses : <br>
+- DataLoader<br>
+
 ### Training and Saving Model.ipynb
 This notebook shows how to train and save a tensoflow model into hard drive.
 
