@@ -29,7 +29,7 @@ Uses: <br>
 - Pandas <br>
 
 ### Data process example with iCliniq.ipynb
-This notebook shows how to process data from csv files so that we can feed it into neural network while traininig.
+This notebook shows how to process data from csv files so that we can feed it into neural network while training.
 
 Uses : <br>
 - DataLoader<br>
